@@ -1,0 +1,60 @@
+name: Build Hakeem Clinic
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Extract Project ZIP
+        run: |
+          unzip -o hakeem-clinic-php-backend.zip -d project
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, bcmath, pdo, mysql
+          coverage: none
+
+      - name: Install Composer Dependencies
+        working-directory: project
+        run: |
+          composer install --no-dev --optimize-autoloader
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install NPM Dependencies
+        working-directory: project
+        run: |
+          npm install
+
+      - name: Build Frontend
+        working-directory: project
+        run: |
+          npm run build
+
+      - name: Create Production Package
+        run: |
+          cd project
+          zip -r ../hakeem-clinic-production.zip .
+
+      - name: Upload Build File
+        uses: actions/upload-artifact@v4
+        with:
+          name: hakeem-clinic-production
+          path: hakeem-clinic-production.zip
+          retention-days: 30
