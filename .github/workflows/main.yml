@@ -19,32 +19,35 @@ jobs:
       - name: Extract ZIP
         run: |
           unzip -o hakeem-clinic-php-backend.zip -d project
-          find project -name package.json
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 22
 
+      - name: Detect Frontend Directory
+        run: |
+          FRONTEND_DIR=$(find project -name package.json -exec grep -l '"build": "vite build"' {} \; | xargs dirname)
+          echo "FRONTEND_DIR=$FRONTEND_DIR" >> $GITHUB_ENV
+          echo "Frontend found at: $FRONTEND_DIR"
+
       - name: Install Dependencies
         run: |
-          cd $(dirname $(find project -name package.json | head -1))
+          cd "$FRONTEND_DIR"
           npm install
 
-      - name: Build Vite Project
+      - name: Build Project
         run: |
-          cd $(dirname $(find project -name package.json | head -1))
+          cd "$FRONTEND_DIR"
           npm run build
 
-      - name: Create dist ZIP
+      - name: Zip dist
         run: |
-          DIST_PATH=$(dirname $(find project -type d -name dist | head -1))
-          cd "$DIST_PATH"
-          zip -r ../../../hakeem-clinic-dist.zip dist
+          cd "$FRONTEND_DIR"
+          zip -r ../../hakeem-clinic-dist.zip dist
 
       - name: Upload dist
         uses: actions/upload-artifact@v4
         with:
           name: hakeem-clinic-dist
           path: hakeem-clinic-dist.zip
-          retention-days: 30
