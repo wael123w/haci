@@ -13,17 +13,16 @@ jobs:
 
     steps:
 
-      # تحميل ملفات GitHub
+      # تحميل المشروع
       - name: Checkout Repository
         uses: actions/checkout@v5
 
 
-      # فك ضغط المشروع
+      # فك ضغط ملف ZIP
       - name: Extract Project ZIP
         run: |
           unzip -o hakeem-clinic-php-backend.zip -d project
-          echo "Project extracted"
-          find project -maxdepth 3 -name package.json
+          echo "ZIP extracted"
 
 
       # إعداد Node.js
@@ -33,17 +32,17 @@ jobs:
           node-version: 22
 
 
-      # العثور على مشروع React الصحيح
+      # العثور على مشروع React
       - name: Detect Frontend Directory
         run: |
           FRONTEND_DIR=$(find project -name package.json -exec grep -l '"build": "vite build"' {} \; | xargs dirname)
 
           if [ -z "$FRONTEND_DIR" ]; then
-            echo "Frontend project not found"
+            echo "React project not found"
             exit 1
           fi
 
-          echo "Frontend directory:"
+          echo "Frontend found:"
           echo "$FRONTEND_DIR"
 
           echo "FRONTEND_DIR=$FRONTEND_DIR" >> $GITHUB_ENV
@@ -56,46 +55,48 @@ jobs:
           npm install
 
 
-      # بناء المشروع
-      - name: Build Vite Project
+      # بناء Vite
+      - name: Build Project
         run: |
           cd "$FRONTEND_DIR"
           npm run build
 
 
-      # التحقق من ملفات البناء
-      - name: Check Build Files
+      # عرض مكان dist للتأكد
+      - name: Check Build Output
         run: |
-          echo "Searching dist folder..."
+          echo "Searching index.html..."
+          find project -name index.html
+
+          echo "Searching dist folders..."
           find project -type d -name dist
-          find project -type f -name index.html
 
 
-      # إنشاء ملف ZIP الصحيح
-      - name: Create dist Archive
+      # إنشاء ZIP الصحيح
+      - name: Create Production ZIP
         run: |
-          echo "Finding generated index.html..."
+          echo "Finding final dist..."
 
-          DIST_DIR=$(find project -type f -name index.html | head -1 | xargs dirname)
+          DIST_DIR=$(find project -name index.html | head -1 | xargs dirname)
 
           if [ -z "$DIST_DIR" ]; then
-            echo "dist folder not found"
+            echo "No dist output found"
             exit 1
           fi
 
-          echo "Using dist folder:"
+          echo "Using:"
           echo "$DIST_DIR"
 
           cd "$DIST_DIR"
 
           zip -r "$GITHUB_WORKSPACE/hakeem-clinic-dist.zip" .
 
-          echo "Created ZIP:"
+          echo "ZIP size:"
           ls -lh "$GITHUB_WORKSPACE/hakeem-clinic-dist.zip"
 
 
-      # رفع ملف الإنتاج
-      - name: Upload dist
+      # رفع الملف
+      - name: Upload Production Files
         uses: actions/upload-artifact@v5
         with:
           name: hakeem-clinic-dist
