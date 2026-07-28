@@ -13,16 +13,17 @@ jobs:
 
     steps:
 
-      # تحميل المشروع
+      # تحميل ملفات GitHub
       - name: Checkout Repository
         uses: actions/checkout@v5
 
 
-      # فك ضغط ملف المشروع
+      # فك ضغط المشروع
       - name: Extract Project ZIP
         run: |
           unzip -o hakeem-clinic-php-backend.zip -d project
-          ls -la project
+          echo "Project extracted"
+          find project -maxdepth 3 -name package.json
 
 
       # إعداد Node.js
@@ -42,7 +43,9 @@ jobs:
             exit 1
           fi
 
-          echo "Frontend directory: $FRONTEND_DIR"
+          echo "Frontend directory:"
+          echo "$FRONTEND_DIR"
+
           echo "FRONTEND_DIR=$FRONTEND_DIR" >> $GITHUB_ENV
 
 
@@ -60,30 +63,38 @@ jobs:
           npm run build
 
 
-      # التأكد من وجود dist وإنشاء ملف ZIP
-      - name: Create dist Archive
+      # التحقق من ملفات البناء
+      - name: Check Build Files
         run: |
           echo "Searching dist folder..."
-
           find project -type d -name dist
+          find project -type f -name index.html
 
-          DIST_DIR=$(find project -type d -name dist | head -1)
+
+      # إنشاء ملف ZIP الصحيح
+      - name: Create dist Archive
+        run: |
+          echo "Finding generated index.html..."
+
+          DIST_DIR=$(find project -type f -name index.html | head -1 | xargs dirname)
 
           if [ -z "$DIST_DIR" ]; then
             echo "dist folder not found"
             exit 1
           fi
 
-          echo "Found dist: $DIST_DIR"
+          echo "Using dist folder:"
+          echo "$DIST_DIR"
 
-          cd "$(dirname "$DIST_DIR")"
+          cd "$DIST_DIR"
 
-          zip -r "$GITHUB_WORKSPACE/hakeem-clinic-dist.zip" dist
+          zip -r "$GITHUB_WORKSPACE/hakeem-clinic-dist.zip" .
 
+          echo "Created ZIP:"
           ls -lh "$GITHUB_WORKSPACE/hakeem-clinic-dist.zip"
 
 
-      # رفع ملف البناء
+      # رفع ملف الإنتاج
       - name: Upload dist
         uses: actions/upload-artifact@v5
         with:
