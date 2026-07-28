@@ -1,4 +1,4 @@
-name: Build Hakeem Clinic
+name: Build Hakeem Clinic Frontend
 
 on:
   workflow_dispatch:
@@ -16,45 +16,35 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v5
 
-      - name: Extract Project ZIP
+      - name: Extract ZIP
         run: |
           unzip -o hakeem-clinic-php-backend.zip -d project
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
-          extensions: mbstring, bcmath, pdo, mysql
-          coverage: none
-
-      - name: Install Composer Dependencies
-        working-directory: project
-        run: |
-          composer install --no-dev --optimize-autoloader
+          find project -name package.json
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 22
 
-      - name: Install NPM Dependencies
-        working-directory: project
+      - name: Install Dependencies
         run: |
+          cd $(dirname $(find project -name package.json | head -1))
           npm install
 
-      - name: Build Frontend
-        working-directory: project
+      - name: Build Vite Project
         run: |
+          cd $(dirname $(find project -name package.json | head -1))
           npm run build
 
-      - name: Create Production Package
+      - name: Create dist ZIP
         run: |
-          cd project
-          zip -r ../hakeem-clinic-production.zip .
+          DIST_PATH=$(dirname $(find project -type d -name dist | head -1))
+          cd "$DIST_PATH"
+          zip -r ../../../hakeem-clinic-dist.zip dist
 
-      - name: Upload Build File
+      - name: Upload dist
         uses: actions/upload-artifact@v4
         with:
-          name: hakeem-clinic-production
-          path: hakeem-clinic-production.zip
+          name: hakeem-clinic-dist
+          path: hakeem-clinic-dist.zip
           retention-days: 30
