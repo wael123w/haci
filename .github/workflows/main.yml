@@ -13,41 +13,80 @@ jobs:
 
     steps:
 
+      # تحميل المشروع
       - name: Checkout Repository
         uses: actions/checkout@v5
 
-      - name: Extract ZIP
+
+      # فك ضغط ملف المشروع
+      - name: Extract Project ZIP
         run: |
           unzip -o hakeem-clinic-php-backend.zip -d project
+          ls -la project
 
+
+      # إعداد Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 22
 
+
+      # العثور على مشروع React الصحيح
       - name: Detect Frontend Directory
         run: |
           FRONTEND_DIR=$(find project -name package.json -exec grep -l '"build": "vite build"' {} \; | xargs dirname)
-          echo "FRONTEND_DIR=$FRONTEND_DIR" >> $GITHUB_ENV
-          echo "Frontend found at: $FRONTEND_DIR"
 
+          if [ -z "$FRONTEND_DIR" ]; then
+            echo "Frontend project not found"
+            exit 1
+          fi
+
+          echo "Frontend directory: $FRONTEND_DIR"
+          echo "FRONTEND_DIR=$FRONTEND_DIR" >> $GITHUB_ENV
+
+
+      # تثبيت الحزم
       - name: Install Dependencies
         run: |
           cd "$FRONTEND_DIR"
           npm install
 
-      - name: Build Project
+
+      # بناء المشروع
+      - name: Build Vite Project
         run: |
           cd "$FRONTEND_DIR"
           npm run build
 
-      - name: Zip dist
-        run: |
-          cd "$FRONTEND_DIR"
-          zip -r ../../hakeem-clinic-dist.zip dist
 
+      # التأكد من وجود dist وإنشاء ملف ZIP
+      - name: Create dist Archive
+        run: |
+          echo "Searching dist folder..."
+
+          find project -type d -name dist
+
+          DIST_DIR=$(find project -type d -name dist | head -1)
+
+          if [ -z "$DIST_DIR" ]; then
+            echo "dist folder not found"
+            exit 1
+          fi
+
+          echo "Found dist: $DIST_DIR"
+
+          cd "$(dirname "$DIST_DIR")"
+
+          zip -r "$GITHUB_WORKSPACE/hakeem-clinic-dist.zip" dist
+
+          ls -lh "$GITHUB_WORKSPACE/hakeem-clinic-dist.zip"
+
+
+      # رفع ملف البناء
       - name: Upload dist
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: hakeem-clinic-dist
           path: hakeem-clinic-dist.zip
+          retention-days: 30
